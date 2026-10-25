@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="hy">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ՄՀՓ և ռիսկերի կառավարում · Հետազոտություն</title>
+  <meta name="description" content="Հետազոտական հարցում՝ մարդ-համակարգիչ փոխազդեցության կիրառությունները բանկային վարկային ռիսկերի կառավարման ոլորտում։">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a1a3a'/%3E%3Cpath d='M8 21l5-5 4 3 7-8' stroke='%232dd4bf' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Armenian:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-bg" aria-hidden="true"></div>
+    <nav class="nav container">
+      <a class="brand" href="#top" aria-label="Սկիզբ">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l5-5 4 3 7-8"/></svg>
+        </span>
+        <span class="brand-text">ՄՀՓ <i>·</i> Ռիսկ</span>
+      </a>
+      <span class="nav-pill"><span class="pulse"></span>Հետազոտությունն ակտիվ է</span>
+    </nav>
+
+    <div class="hero-inner container" id="top">
+      <div class="hero-copy">
+        <span class="eyebrow">Ավարտական աշխատանք · Բանկային և վարկային ոլորտ</span>
+        <h1 id="survey-title">Մարդ-համակարգիչ փոխազդեցության կիրառությունները ռիսկերի կառավարման ոլորտում</h1>
+        <p class="lead" id="survey-subtitle"></p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#survey">
+            Սկսել հարցումը
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <div class="hero-meta">
+            <span><b id="stat-minutes">6</b> րոպե</span>
+            <span><b id="stat-sections">6</b> բաժին</span>
+            <span><b>100%</b> անանուն</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="glass card-gauge">
+          <div class="glass-head"><span>Վարկային ռիսկի ինդեքս</span><span class="tag tag-ok">Ցածր</span></div>
+          <svg class="gauge" viewBox="0 0 200 120">
+            <defs>
+              <linearGradient id="g-gauge" x1="0" x2="1">
+                <stop offset="0" stop-color="#2dd4bf"/><stop offset=".55" stop-color="#f6c454"/><stop offset="1" stop-color="#f87171"/>
+              </linearGradient>
+            </defs>
+            <path d="M20 105a80 80 0 0 1 160 0" stroke="rgba(255,255,255,.12)" stroke-width="14" fill="none" stroke-linecap="round"/>
+            <path class="gauge-arc" d="M20 105a80 80 0 0 1 160 0" stroke="url(#g-gauge)" stroke-width="14" fill="none" stroke-linecap="round"/>
+            <g class="needle"><line x1="100" y1="105" x2="100" y2="42" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><circle cx="100" cy="105" r="7" fill="#fff"/></g>
+          </svg>
+          <div class="gauge-value"><b>712</b><span>սքորինգային միավոր</span></div>
+        </div>
+
+        <div class="glass card-chart">
+          <div class="glass-head"><span>Մարումների դինամիկա</span><span class="muted-xs">12 ամիս</span></div>
+          <div class="bars">
+            <i style="--h:42%"></i><i style="--h:55%"></i><i style="--h:48%"></i><i style="--h:63%"></i><i style="--h:58%"></i><i style="--h:72%"></i>
+            <i style="--h:67%"></i><i style="--h:80%"></i><i style="--h:76%"></i><i style="--h:88%"></i><i style="--h:84%"></i><i style="--h:94%"></i>
+          </div>
+        </div>
+
+        <div class="credit-card">
+          <div class="cc-top"><span class="cc-chip"></span><span class="cc-brand">CREDIT</span></div>
+          <div class="cc-num">••••  ••••  ••••  2026</div>
+          <div class="cc-bottom"><span>Վարկային սահմանաչափ</span><b>֏ 2 500 000</b></div>
+        </div>
+
+        <div class="glass card-alert">
+          <span class="alert-icon">!</span>
+          <div><b>Նախազգուշացում</b><span>Վճարը գերազանցում է եկամտի 40%-ը</span></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="progress" id="progress" role="navigation" aria-label="Հարցման ընթացք">
+    <div class="container progress-inner">
+      <ol class="steps" id="steps"></ol>
+      <div class="progress-pct"><span id="pct">0</span>%</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <main class="container main" id="survey">
+    <div class="intro-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+      <p>Չկան ճիշտ կամ սխալ պատասխաններ։ Պատասխանները պահպանվում են այս սարքում մինչև ուղարկելը, այնպես որ կարող եք շարունակել ավելի ուշ։ <b class="req">*</b>-ով նշված դաշտերը պարտադիր են։</p>
+    </div>
+
+    <form id="form" novalidate>
+      <div id="sections"><div class="loading"><span></span><span></span><span></span></div></div>
+
+      <input class="hp" type="text" name="website" id="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+      <div class="submit-bar">
+        <p class="submit-hint" id="submit-hint">Պատասխանել եք <b id="answered">0</b> հարցի <b id="total">0</b>-ից</p>
+        <button class="btn btn-primary btn-lg" type="submit" id="submit">
+          <span class="btn-label">Ուղարկել պատասխանները</span>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+    </form>
+
+    <section class="success" id="success" hidden>
+      <div class="success-icon">
+        <svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="none"/><path fill="none" d="M15 27l7 7 15-15"/></svg>
+      </div>
+      <h2>Շնորհակալություն մասնակցության համար</h2>
+      <p>Ձեր պատասխաններն ընդունված են և կօգտագործվեն ավարտական աշխատանքի վերլուծության մեջ։</p>
+      <p class="success-id">Պատասխանի համար՝ <code id="response-id"></code></p>
+      <button class="btn btn-ghost" type="button" id="restart">Լրացնել նորից</button>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>© 2026 · Ավարտական աշխատանք</span>
+      <span>Մարդ-համակարգիչ փոխազդեցություն · Ռիսկերի կառավարում · Բանկային ոլորտ</span>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

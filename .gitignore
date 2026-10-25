@@ -1,0 +1,27 @@
+# Dependencies (reinstalled with `npm install`)
+node_modules/
+
+# Survey answers — personal research data, never commit
+data/*
+!data/.gitkeep
+
+# Secrets and local config (ADMIN_TOKEN etc.)
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# Local tooling
+.claude/

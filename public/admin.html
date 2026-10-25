@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="hy">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Պատասխաններ · Ադմին</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a1a3a'/%3E%3Cpath d='M8 21l5-5 4 3 7-8' stroke='%232dd4bf' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Armenian:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body class="admin">
+  <header class="admin-top">
+    <div class="container admin-top-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l5-5 4 3 7-8"/></svg></span>
+        <span class="brand-text">ՄՀՓ <i>·</i> Ռիսկ <small>Ադմին</small></span>
+      </a>
+      <div class="admin-actions" id="actions" hidden>
+        <button class="btn btn-ghost btn-sm" id="refresh" type="button">Թարմացնել</button>
+        <button class="btn btn-ghost btn-sm" id="dl-json" type="button">JSON</button>
+        <button class="btn btn-primary btn-sm" id="dl-csv" type="button">Ներբեռնել CSV</button>
+        <button class="btn btn-ghost btn-sm" id="logout" type="button">Ելք</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container admin-main">
+    <form class="login" id="login">
+      <h1>Մուտք ադմինիստրատորի համար</h1>
+      <p>Մուտքագրեք ադմին գաղտնաբառը (ADMIN_TOKEN)՝ պատասխանները դիտելու համար։</p>
+      <input class="field" type="password" id="token" placeholder="Գաղտնաբառ" autocomplete="current-password" required>
+      <p class="login-error" id="login-error" hidden>Սխալ գաղտնաբառ</p>
+      <button class="btn btn-primary" type="submit">Մուտք</button>
+    </form>
+
+    <div id="dashboard" hidden>
+      <div class="kpis" id="kpis"></div>
+      <div class="panels" id="panels"></div>
+      <section class="panel">
+        <div class="panel-head"><h2>Բոլոր պատասխանները</h2><span class="muted" id="count-label"></span></div>
+        <div class="table-wrap"><table class="table" id="table"></table></div>
+      </section>
+    </div>
+  </main>
+
+  <dialog class="modal" id="modal">
+    <div class="modal-head"><h3 id="modal-title">Պատասխան</h3><button class="modal-close" id="modal-close" type="button" aria-label="Փակել">×</button></div>
+    <div class="modal-body" id="modal-body"></div>
+  </dialog>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
