@@ -9,6 +9,9 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'admin123';
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'responses.json');
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Permanent copy in Google Sheets (see google-apps-script/Code.gs). Hosting disks like Render free are wiped on restart.
+const SHEET_URL = process.env.GOOGLE_SHEET_URL || '';
+const SHEET_SECRET = process.env.SHEET_SECRET || '';
 
 // ---------- Storage (JSON file, serialized writes) ----------
 
@@ -34,6 +37,61 @@ function append(record) {
   });
   writeQueue = job.catch(() => {});
   return job;
+}
+
+// ---------- Google Sheets ----------
+
+const allQuestions = survey.sections.flatMap((s) => s.questions);
+const optionLabel = (q, v) => q.options?.find((o) => o.value === v)?.label ?? v;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function displayValue(q, answers) {
+  const v = answers[q.id];
+  if (v === undefined) return '';
+  const other = answers[`${q.id}_other`] ? ` (${answers[`${q.id}_other`]})` : '';
+  switch (q.type) {
+    case 'single': return optionLabel(q, v) + (v === 'other' ? other : '');
+    case 'multi': return v.map((x) => optionLabel(q, x) + (x === 'other' ? other : '')).join('; ');
+    case 'consent': return v ? 'Այո' : '';
+    default: return v;
+  }
+}
+
+// One readable spreadsheet row: [header, value] pairs in a fixed order.
+function toColumns(record) {
+  const cols = [];
+  for (const q of allQuestions) {
+    if (q.type === 'likert') q.rows.forEach((row) => cols.push([row.label, record.answers[q.id]?.[row.id] ?? '']));
+    else cols.push([q.label, displayValue(q, record.answers)]);
+  }
+  cols.push(['Տևողություն (վրկ)', Math.round(record.meta.durationMs / 1000)]);
+  cols.push(['Սարք', record.meta.pointer === 'touch' ? 'Հեռախոս / պլանշետ' : 'Համակարգիչ']);
+  return cols;
+}
+
+// Runs in the background so the participant never waits for Google. Retries; the script skips duplicate ids.
+async function sendToSheet(record) {
+  const body = JSON.stringify({ secret: SHEET_SECRET, record, columns: toColumns(record) });
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const res = await fetch(SHEET_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+      const data = await res.json();
+      if (data.ok) return;
+      if (data.error === 'unauthorized') throw Object.assign(new Error('SHEET_SECRET does not match the script'), { fatal: true });
+      throw new Error(data.error || `HTTP ${res.status}`);
+    } catch (err) {
+      console.error(`Google Sheets save failed for ${record.id} (attempt ${attempt}/5): ${err.message}`);
+      if (err.fatal) return;
+      await sleep(3000 * attempt);
+    }
+  }
+}
+
+async function readSheet() {
+  const res = await fetch(`${SHEET_URL}?secret=${encodeURIComponent(SHEET_SECRET)}`);
+  const data = await res.json();
+  if (!Array.isArray(data.responses)) throw new Error(data.error || `HTTP ${res.status}`);
+  return data.responses;
 }
 
 // ---------- Validation against the survey schema ----------
@@ -166,13 +224,15 @@ app.post('/api/responses', async (req, res) => {
     meta: sanitizeMeta(body.meta, req),
   };
 
+  if (SHEET_URL) sendToSheet(record);
+
   try {
     await append(record);
-    res.status(201).json({ ok: true, id: record.id });
   } catch (err) {
-    console.error('Failed to save response:', err);
-    res.status(500).json({ error: 'storage' });
+    console.error('Failed to save response to file:', err);
+    if (!SHEET_URL) return res.status(500).json({ error: 'storage' });
   }
+  res.status(201).json({ ok: true, id: record.id });
 });
 
 function requireAdmin(req, res, next) {
@@ -185,11 +245,24 @@ function requireAdmin(req, res, next) {
 }
 
 app.get('/api/responses', requireAdmin, async (req, res) => {
+  let local;
   try {
-    res.json({ survey, responses: await readAll() });
+    local = await readAll();
   } catch (err) {
     console.error('Failed to read responses:', err);
-    res.status(500).json({ error: 'storage' });
+    if (!SHEET_URL) return res.status(500).json({ error: 'storage' });
+    local = [];
+  }
+  if (!SHEET_URL) return res.json({ survey, responses: local, source: 'file' });
+
+  try {
+    // The sheet is the permanent store; add local answers that are still on their way to it.
+    const remote = await readSheet();
+    const ids = new Set(remote.map((r) => r.id));
+    res.json({ survey, responses: [...remote, ...local.filter((r) => !ids.has(r.id))], source: 'sheet' });
+  } catch (err) {
+    console.error('Failed to read Google Sheet:', err.message);
+    res.json({ survey, responses: local, source: 'file', warning: 'sheet_unavailable' });
   }
 });
 
@@ -199,5 +272,7 @@ app.listen(PORT, () => {
   console.log(`\n  Survey:  http://localhost:${PORT}`);
   console.log(`  Admin:   http://localhost:${PORT}/admin`);
   console.log(`  Data:    ${DATA_FILE}`);
+  console.log(`  Sheets:  ${SHEET_URL ? 'connected (answers are also saved to Google Sheets)' : 'not configured — set GOOGLE_SHEET_URL and SHEET_SECRET'}`);
+  if (SHEET_URL && !SHEET_SECRET) console.log('  ⚠  GOOGLE_SHEET_URL is set but SHEET_SECRET is empty — the script will reject answers.');
   if (!process.env.ADMIN_TOKEN) console.log('  ⚠  Using default admin token "admin123" — set ADMIN_TOKEN before sharing publicly.\n');
 });

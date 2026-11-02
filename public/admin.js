@@ -9,6 +9,8 @@
   let survey;
   let responses = [];
   let questions = [];
+  let source = 'file';
+  let warning = '';
 
   const fmtDate = (iso) => new Date(iso).toLocaleString('hy-AM', { dateStyle: 'medium', timeStyle: 'short' });
   const fmtMin = (ms) => (ms ? `${(ms / 60000).toFixed(1)} ր` : '—');
@@ -44,6 +46,8 @@
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     survey = data.survey;
+    source = data.source;
+    warning = data.warning || '';
     responses = data.responses.slice().sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
     questions = survey.sections.flatMap((s) => s.questions);
   }
@@ -102,7 +106,9 @@
       <section class="panel"><div class="panel-head"><h2>Հաճախակի խնդիրներ</h2></div>${hbars(pains, maxOf(pains))}</section>
       <section class="panel"><div class="panel-head"><h2>Նախընտրելի նույնականացում</h2></div>${hbars(auth, maxOf(auth))}</section>`;
 
-    $('#count-label').textContent = `${n} գրառում`;
+    $('#count-label').textContent = warning
+      ? `${n} գրառում · ⚠ Google Sheets-ը հասանելի չէ, ցուցադրվում են միայն սերվերի ժամանակավոր տվյալները`
+      : `${n} գրառում · աղբյուր՝ ${source === 'sheet' ? 'Google Sheets' : 'սերվերի ֆայլ (ժամանակավոր)'}`;
     $('#table').innerHTML = n
       ? `<thead><tr><th>Ամսաթիվ</th><th>Դեր</th><th>Տարիք</th><th>Հեշտություն</th><th>Տևողություն</th><th>Սարք</th><th></th></tr></thead>
         <tbody>${responses.map((r, i) => `

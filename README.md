@@ -24,6 +24,19 @@ No database — every submission is appended to `data/responses.json`
 (writes are serialized and atomic, so the file is never corrupted).
 The admin page shows charts and exports **CSV** (opens in Excel / SPSS) and **JSON**.
 
+## Keeping answers permanently (Google Sheets)
+
+Free hosting (e.g. Render free) wipes `data/responses.json` on every restart. To keep every answer,
+the server also sends each one to your own Google Sheet, and the admin page reads from it.
+
+1. Create a new Google Sheet → **Extensions → Apps Script**.
+2. Paste the contents of `google-apps-script/Code.gs`, set `SECRET` to a long random password, **Save**.
+3. **Deploy → New deployment → Web app**: Execute as **Me**, Who has access **Anyone** → **Deploy**, allow access, copy the Web app URL.
+4. On Render → **Environment**, add:
+   - `GOOGLE_SHEET_URL` = the Web app URL
+   - `SHEET_SECRET` = the same password as `SECRET` in the script
+5. Submit a test answer — a row appears in the sheet tab «Պատասխաններ».
+
 ## Structure
 
 | File | Purpose |
