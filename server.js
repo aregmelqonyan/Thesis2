@@ -176,6 +176,42 @@ const knownQuestionIds = new Set(survey.sections.flatMap((s) => s.questions.map(
 const knownSectionIds = new Set(survey.sections.map((s) => s.id));
 const int = (v, max = 864e5) => (Number.isFinite(Number(v)) ? Math.max(0, Math.min(max, Math.round(Number(v)))) : 0);
 
+// Eye tracking (WebGazer) data, keyed by the page's data-aoi names.
+const knownAois = new Set(
+  survey.sections.flatMap((s) => [
+    `section-${s.id}`,
+    ...s.questions.flatMap((q) => [`q-${q.id}`, ...(q.rows || []).map((r) => `likert-${r.id}`)]),
+  ]),
+);
+const MAX_GAZE_POINTS = 1200; // keeps the record well under a Google Sheets cell (50 000 chars)
+
+function sanitizeGaze(g) {
+  if (!g || typeof g !== 'object' || g.enabled !== true) return { enabled: false };
+  const aoi = {};
+  for (const [id, a] of Object.entries(g.aoi || {})) {
+    if (knownAois.has(id) && a && typeof a === 'object') {
+      aoi[id] = { dwellMs: int(a.dwellMs), firstMs: int(a.firstMs), visits: int(a.visits, 1e5) };
+    }
+  }
+  const aoiRects = {};
+  for (const [id, r] of Object.entries(g.aoiRects || {})) {
+    if (knownAois.has(id) && Array.isArray(r) && r.length === 4) aoiRects[id] = r.map((v) => int(v, 1e6));
+  }
+  const points = (Array.isArray(g.points) ? g.points : [])
+    .slice(0, MAX_GAZE_POINTS)
+    .filter((p) => Array.isArray(p) && p.length === 3)
+    .map(([x, y, t]) => [int(x, 1e5), int(y, 1e6), Math.round(Math.min(86400, Math.max(0, Number(t) || 0)) * 10) / 10]);
+  return {
+    enabled: true,
+    accuracy: int(g.accuracy, 100),
+    samples: int(g.samples, 1e7),
+    aoi,
+    aoiRects,
+    points,
+    page: { w: int(g.page?.w, 1e5), h: int(g.page?.h, 1e6) },
+  };
+}
+
 function sanitizeMeta(meta, req) {
   const m = meta && typeof meta === 'object' ? meta : {};
   const questions = {};
@@ -195,6 +231,7 @@ function sanitizeMeta(meta, req) {
     viewport: { w: int(m.viewport?.w, 1e4), h: int(m.viewport?.h, 1e4) },
     pointer: m.pointer === 'touch' ? 'touch' : 'mouse',
     restoredDraft: m.restoredDraft === true,
+    gaze: sanitizeGaze(m.gaze),
     lang: cleanText(m.lang, 20),
     userAgent: cleanText(req.get('user-agent'), 300),
   };
@@ -204,7 +241,7 @@ function sanitizeMeta(meta, req) {
 
 const app = express();
 app.disable('x-powered-by');
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '300kb' }));
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 app.get('/api/survey', (req, res) => res.json(survey));

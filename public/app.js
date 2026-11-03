@@ -309,6 +309,7 @@
         viewport: { w: window.innerWidth, h: window.innerHeight },
         pointer: matchMedia('(pointer: coarse)').matches ? 'touch' : 'mouse',
         lang: navigator.language,
+        gaze: window.EyeTracking ? EyeTracking.getData() : { enabled: false },
       },
     };
   }
@@ -341,6 +342,8 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       storage.clear();
+      window.EyeTracking?.stop();
+      $('#et-card').hidden = true;
       $('#response-id').textContent = (data.id || '').slice(0, 8).toUpperCase();
       $('#form').hidden = true;
       $('.intro-note').hidden = true;
@@ -423,6 +426,7 @@
     }
 
     render();
+    window.EyeTracking?.setup(startedAt);
 
     const draft = storage.get();
     if (draft?.answers && Object.keys(draft.answers).length) {

@@ -81,12 +81,14 @@
     const ease = avg(responses.map((r) => r.answers.easeScore).filter(Number.isFinite));
     const dur = median(responses.map((r) => r.meta?.durationMs).filter((x) => x > 0));
     const pros = responses.filter((r) => ['credit', 'risk', 'it'].includes(r.answers.role)).length;
+    const gazeRs = responses.filter((r) => r.meta?.gaze?.enabled);
 
     $('#kpis').innerHTML = `
       <div class="kpi"><span>Պատասխաններ</span><b>${n}</b><small>${n ? `Վերջինը՝ ${fmtDate(responses[0].submittedAt)}` : 'Դեռ չկան'}</small></div>
       <div class="kpi"><span>Հայտի հեշտություն (միջին)</span><b>${ease ? ease.toFixed(1) : '—'}</b><small>սանդղակ 1–10</small></div>
       <div class="kpi"><span>Լրացման տևողություն (մեդիան)</span><b>${dur ? (dur / 60000).toFixed(1) : '—'}</b><small>րոպե</small></div>
-      <div class="kpi"><span>Մասնագետներ</span><b>${pros}</b><small>${n ? Math.round((pros / n) * 100) : 0}% մասնակիցներից</small></div>`;
+      <div class="kpi"><span>Մասնագետներ</span><b>${pros}</b><small>${n ? Math.round((pros / n) * 100) : 0}% մասնակիցներից</small></div>
+      <div class="kpi"><span>Eye tracking</span><b>${gazeRs.length}</b><small>${gazeRs.length ? `միջին ճշգրտություն՝ ${Math.round(avg(gazeRs.map((r) => r.meta.gaze.accuracy)))}%` : 'տվյալներ դեռ չկան'}</small></div>`;
 
     const likertQ = questions.find((q) => q.type === 'likert');
     const likertAvg = likertQ.rows
@@ -104,7 +106,8 @@
       <section class="panel"><div class="panel-head"><h2>Վարկի դիմելու ուղիներ</h2></div>${hbars(channels, maxOf(channels))}</section>
       <section class="panel wide"><div class="panel-head"><h2>Ռիսկի ընկալում — միջին համաձայնություն</h2><span class="muted">1–5</span></div>${hbars(likertAvg, 5)}</section>
       <section class="panel"><div class="panel-head"><h2>Հաճախակի խնդիրներ</h2></div>${hbars(pains, maxOf(pains))}</section>
-      <section class="panel"><div class="panel-head"><h2>Նախընտրելի նույնականացում</h2></div>${hbars(auth, maxOf(auth))}</section>`;
+      <section class="panel"><div class="panel-head"><h2>Նախընտրելի նույնականացում</h2></div>${hbars(auth, maxOf(auth))}</section>
+      ${gazeRs.length ? attentionPanel(gazeRs) : ''}`;
 
     $('#count-label').textContent = warning
       ? `${n} գրառում · ⚠ Google Sheets-ը հասանելի չէ, ցուցադրվում են միայն սերվերի ժամանակավոր տվյալները`
@@ -124,6 +127,116 @@
       : '<tbody><tr><td class="empty">Պատասխաններ դեռ չկան։ Կիսվեք հարցման հղումով։</td></tr></tbody>';
   }
 
+  // ---------- Eye tracking ----------
+  // Every AOI row: questions, with Likert statements nested under their question.
+  function aoiList() {
+    return questions.flatMap((q) => [
+      { id: `q-${q.id}`, label: q.label, nested: false },
+      ...(q.rows || []).map((row) => ({ id: `likert-${row.id}`, label: row.label, nested: true })),
+    ]);
+  }
+
+  function attentionPanel(gazeRs) {
+    const rows = aoiList()
+      .map((a) => {
+        const seen = gazeRs.map((r) => r.meta.gaze.aoi?.[a.id]).filter(Boolean);
+        if (!seen.length) return null;
+        return {
+          ...a,
+          dwell: avg(seen.map((s) => s.dwellMs)) / 1000,
+          visits: avg(seen.map((s) => s.visits)),
+          first: avg(seen.map((s) => s.firstMs)) / 1000,
+        };
+      })
+      .filter(Boolean);
+    if (!rows.length) return '';
+    const max = Math.max(...rows.map((r) => r.dwell)) || 1;
+
+    return `
+      <section class="panel wide">
+        <div class="panel-head"><h2>Ուշադրության քարտեզ ըստ հարցերի (eye tracking)</h2><span class="muted">${gazeRs.length} մասնակից · միջին արժեքներ</span></div>
+        <div class="table-wrap"><table class="table heat">
+          <thead><tr><th>Հարց / պնդում</th><th>Հայացքի ժամանակ (վրկ)</th><th>Մուտքեր</th><th>Առաջին հայացք (վրկ)</th></tr></thead>
+          <tbody>${rows.map((r) => {
+            const k = r.dwell / max;
+            return `<tr class="${r.nested ? 'nested' : ''}">
+              <td class="heat-label" title="${esc(r.label)}">${esc(r.label)}</td>
+              <td><span class="heat-cell" style="--k:${k.toFixed(3)}" data-dark="${k > 0.55}">${r.dwell.toFixed(1)}</span></td>
+              <td>${r.visits.toFixed(1)}</td>
+              <td>${r.first.toFixed(1)}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>
+      </section>`;
+  }
+
+  // Gaze points of one response as a heatmap over a wireframe of the page it saw.
+  function drawGazeHeatmap(canvas, gaze) {
+    // Crop to the survey sections so the page header doesn't leave a large empty area.
+    const sectionRects = Object.entries(gaze.aoiRects || {}).filter(([id]) => id.startsWith('section-')).map(([, r]) => r);
+    const pad = 24;
+    const box = sectionRects.length
+      ? {
+        x: Math.min(...sectionRects.map((r) => r[0])) - pad,
+        y: Math.min(...sectionRects.map((r) => r[1])) - pad,
+        r: Math.max(...sectionRects.map((r) => r[0] + r[2])) + pad,
+        b: Math.max(...sectionRects.map((r) => r[1] + r[3])) + pad,
+      }
+      : { x: 0, y: 0, r: gaze.page.w, b: gaze.page.h };
+    const width = canvas.parentElement.clientWidth;
+    const scale = width / (box.r - box.x);
+    const height = Math.round((box.b - box.y) * scale);
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.height = `${height}px`;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.translate(-box.x * scale, -box.y * scale);
+
+    ctx.fillStyle = '#f3f6fb';
+    ctx.fillRect(box.x * scale, box.y * scale, width, height);
+    for (const [id, [x, y, w, h]] of Object.entries(gaze.aoiRects || {})) {
+      const isSection = id.startsWith('section-');
+      ctx.fillStyle = isSection ? '#ffffff' : 'rgba(0,0,0,0)';
+      ctx.strokeStyle = isSection ? '#cbd5e3' : '#e3e9f2';
+      ctx.fillRect(x * scale, y * scale, w * scale, h * scale);
+      ctx.strokeRect(x * scale, y * scale, w * scale, h * scale);
+    }
+
+    // Accumulate density in an offscreen alpha channel, then colorize it.
+    const off = document.createElement('canvas');
+    off.width = canvas.width;
+    off.height = canvas.height;
+    const octx = off.getContext('2d');
+    const radius = Math.max(10, 70 * scale) * dpr;
+    for (const [x, y] of gaze.points) {
+      const px = (x - box.x) * scale * dpr;
+      const py = (y - box.y) * scale * dpr;
+      const g = octx.createRadialGradient(px, py, 0, px, py, radius);
+      g.addColorStop(0, 'rgba(0,0,0,0.22)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      octx.fillStyle = g;
+      octx.fillRect(px - radius, py - radius, radius * 2, radius * 2);
+    }
+    const img = octx.getImageData(0, 0, off.width, off.height);
+    const stops = [[20, 184, 166], [246, 196, 84], [220, 58, 63]]; // teal → amber → red
+    for (let i = 3; i < img.data.length; i += 4) {
+      const a = img.data[i] / 255;
+      if (!a) continue;
+      const t = Math.min(1, a * 1.4);
+      const [c0, c1] = t < 0.5 ? [stops[0], stops[1]] : [stops[1], stops[2]];
+      const f = t < 0.5 ? t * 2 : (t - 0.5) * 2;
+      img.data[i - 3] = c0[0] + (c1[0] - c0[0]) * f;
+      img.data[i - 2] = c0[1] + (c1[1] - c0[1]) * f;
+      img.data[i - 1] = c0[2] + (c1[2] - c0[2]) * f;
+      img.data[i] = Math.min(220, a * 255 * 2.5);
+    }
+    octx.putImageData(img, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(off, 0, 0);
+  }
+
   function openModal(r) {
     const rows = [];
     for (const s of survey.sections) {
@@ -138,9 +251,17 @@
       }
     }
     rows.push(`<div class="ans"><dt>Փոխազդեցության չափորոշիչներ</dt><dd>Տևողություն՝ ${fmtMin(r.meta?.durationMs)} · Էկրան՝ ${r.meta?.viewport?.w}×${r.meta?.viewport?.h} · Սևագիր վերականգնված՝ ${r.meta?.restoredDraft ? 'այո' : 'ոչ'}</dd></div>`);
+    const gaze = r.meta?.gaze;
+    const hasHeatmap = gaze?.enabled && gaze.points?.length && gaze.page?.w;
+    if (gaze?.enabled) {
+      rows.push(`<div class="ans"><dt>Eye tracking</dt><dd>Ճշգրտություն՝ ${gaze.accuracy}% · ${gaze.points.length} հայացքի կետ</dd></div>`);
+    }
     $('#modal-title').textContent = fmtDate(r.submittedAt);
-    $('#modal-body').innerHTML = `<dl>${rows.join('')}</dl>`;
+    $('#modal-body').innerHTML = `<dl>${rows.join('')}</dl>${hasHeatmap
+      ? '<div class="ans"><dt>Հայացքի ջերմային քարտեզ (heatmap)</dt><dd><div class="heatmap-wrap"><canvas id="heatmap"></canvas></div></dd></div>'
+      : ''}`;
     $('#modal').showModal();
+    if (hasHeatmap) drawGazeHeatmap($('#heatmap'), gaze);
   }
 
   // ---------- Export ----------
@@ -168,6 +289,14 @@
     cols.push(['Էկրանի լայնություն', (r) => r.meta?.viewport?.w || '']);
     for (const s of survey.sections) cols.push([`Ժամանակ բաժնում՝ ${s.short} (վրկ)`, (r) => Math.round((r.meta?.sectionDwellMs?.[s.id] || 0) / 1000)]);
     for (const q of questions) cols.push([`Փոփոխություններ՝ ${q.id}`, (r) => r.meta?.questions?.[q.id]?.changes ?? '']);
+    cols.push(['Eye tracking', (r) => (r.meta?.gaze?.enabled ? 'Այո' : 'Ոչ')]);
+    cols.push(['Eye tracking ճշգրտություն %', (r) => (r.meta?.gaze?.enabled ? r.meta.gaze.accuracy : '')]);
+    for (const a of aoiList()) {
+      const g = (r) => r.meta?.gaze?.aoi?.[a.id];
+      cols.push([`Հայացք՝ ${a.id} (վրկ)`, (r) => (g(r) ? (g(r).dwellMs / 1000).toFixed(1) : '')]);
+      cols.push([`Մուտքեր՝ ${a.id}`, (r) => g(r)?.visits ?? '']);
+      cols.push([`Առաջին հայացք՝ ${a.id} (վրկ)`, (r) => (g(r) ? (g(r).firstMs / 1000).toFixed(1) : '')]);
+    }
 
     const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const lines = [cols.map(([h]) => cell(h)).join(',')];

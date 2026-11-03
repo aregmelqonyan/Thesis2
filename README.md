@@ -53,3 +53,12 @@ total completion time, time spent in each section, first/last interaction time a
 number of changes per question, screen size and touch vs. mouse.
 Every section, question and Likert row has a `data-aoi` attribute, so it can be used
 as an Area of Interest for eye-tracking software.
+
+## Webcam eye tracking (WebGazer.js)
+
+Optional for participants on a computer with a webcam (hidden on phones). Flow: camera check →
+click 9 calibration dots → 3-second accuracy check → survey. Video never leaves the browser.
+Saved in `meta.gaze`: calibration accuracy, per-AOI dwell time / visits / time to first look,
+gaze points (2 per second) and AOI positions. The admin page shows an attention table per
+question and a heatmap per response; the CSV has gaze columns for every AOI.
+Needs HTTPS (Render) or `localhost`. The library (~2 MB + face model) loads only after opt-in.

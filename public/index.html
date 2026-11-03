@@ -94,6 +94,31 @@
       <p>Չկան ճիշտ կամ սխալ պատասխաններ։ Պատասխանները պահպանվում են այս սարքում մինչև ուղարկելը, այնպես որ կարող եք շարունակել ավելի ուշ։ <b class="req">*</b>-ով նշված դաշտերը պարտադիր են։</p>
     </div>
 
+    <section class="et-card" id="et-card" hidden>
+      <div class="et-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      <div class="et-body">
+        <span class="et-badge">Ոչ պարտադիր · Eye tracking</span>
+        <h2>Հայացքի հետազոտում տեսախցիկով</h2>
+        <div class="et-offer">
+          <p>Կարող եք թույլ տալ, որ համակարգը ձեր տեսախցիկով գնահատի, թե էկրանի որ հատվածին եք նայում հարցերին պատասխանելիս։ <b>Տեսանյութը չի ձայնագրվում և չի հեռանում ձեր սարքից</b>․ պահպանվում են միայն հայացքի կոորդինատները։</p>
+          <ol class="et-steps">
+            <li>Թույլատրեք տեսախցիկը</li>
+            <li>Սեղմեք 9 կետերի վրա (~30 վրկ)</li>
+            <li>Լրացրեք հարցումը սովորականի պես</li>
+          </ol>
+          <div class="et-actions">
+            <button class="btn btn-dark" type="button" id="et-start">Միացնել eye tracking</button>
+            <button class="btn btn-link" type="button" id="et-skip">Շարունակել առանց դրա</button>
+          </div>
+        </div>
+        <p class="et-done et-done-active">Eye tracking-ը միացված է։ Շնորհակալություն, կարող եք լրացնել հարցումը։</p>
+        <p class="et-done et-done-skipped">Հարցումը կլրացվի առանց eye tracking-ի։ <button class="btn-link" type="button" onclick="this.closest('.et-card').classList.remove('is-skipped')">Փոխել որոշումը</button></p>
+        <p class="et-done et-done-stopped">Eye tracking-ն անջատված է, տեսախցիկն ազատված է։</p>
+      </div>
+    </section>
+
     <form id="form" novalidate>
       <div id="sections"><div class="loading"><span></span><span></span><span></span></div></div>
 
@@ -126,8 +151,26 @@
     </div>
   </footer>
 
+  <div class="calib" id="calib" role="dialog" aria-modal="true" aria-labelledby="calib-title" hidden>
+    <div class="calib-dots" id="calib-dots"></div>
+    <p class="calib-hint" id="calib-hint" hidden></p>
+    <div class="calib-panel" id="calib-panel">
+      <h3 id="calib-title"></h3>
+      <p id="calib-text"></p>
+      <div class="calib-video" id="calib-video"></div>
+      <div class="calib-actions" id="calib-actions"></div>
+    </div>
+  </div>
+
+  <div class="et-status" id="et-status" hidden>
+    <span class="pulse"></span>
+    <span>Eye tracking · <b id="et-status-acc"></b></span>
+    <button type="button" id="et-stop">Անջատել</button>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="/eyetracking.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
